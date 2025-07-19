@@ -114,3 +114,8 @@ build/Release
 
 # TypeScript cache
 *.tsbuildinfo 
+
+/build
+
+# all files starts with test-server
+test-server*

@@ -9,6 +9,7 @@ A secure, production-ready tunnel server built with Node.js that allows you to e
 -  **Reliability**: Automatic reconnection, graceful shutdown, error handling
 -  **Performance**: Connection pooling, request timeouts, memory management
 -  **Developer Friendly**: Environment configuration, development mode with SSL
+-  **Modern CLI**: Interactive setup wizard, configuration management, beautiful UI
 
 ## Architecture
 
@@ -50,10 +51,27 @@ npm run dev
 
 ### 4. Start the Client
 
+#### Option A: Using the Modern CLI (Recommended)
+
+```bash
+# Interactive setup (recommended for first time)
+node cli.js setup
+
+# Quick connect to port 3000
+node cli.js quick -p 3000
+
+# Full control connection
+node cli.js connect -s ws://localhost:8080 -p 3000 -c my-client
+```
+
+#### Option B: Direct Client Usage
+
 ```bash
 # In another terminal
 node client/index.js
 ```
+
+For detailed CLI documentation, see [CLI_README.md](CLI_README.md).
 
 ## Configuration
 
@@ -209,6 +227,38 @@ The server provides health check endpoints for load balancers and monitoring sys
 
 ### Debug Mode
 Set `LOG_LEVEL=debug` for detailed logging information.
+
+## CLI Tool
+
+The tunnel server includes a modern, feature-rich CLI tool for easy client management.
+
+### CLI Features
+
+- 🚀 **Interactive Setup Wizard** - Guided configuration with validation
+- 🎨 **Beautiful UI** - Colored output, spinners, and ASCII art
+- ⚙️ **Configuration Management** - Save, edit, and reset settings
+- 🔗 **Multiple Connection Modes** - Full control or quick connect
+- 📊 **Status Information** - View current configuration and usage
+- 🔄 **Auto-reconnection** - Robust connection handling
+- 📝 **Comprehensive Help** - Detailed documentation and examples
+
+### Quick CLI Examples
+
+```bash
+# First-time setup
+node cli.js setup
+
+# Quick connect
+node cli.js quick -p 3000
+
+# Show configuration
+node cli.js config --show
+
+# Get help
+node cli.js help
+```
+
+For complete CLI documentation, see [CLI_README.md](CLI_README.md).
 
 ## Contributing
 

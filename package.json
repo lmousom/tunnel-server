@@ -2,13 +2,22 @@
   "name": "tunnel-server",
   "version": "1.0.0",
   "description": "A self-hosted tunnel server in Node.js",
+  "author": "Latiful Mousom <latifulmousom@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lmousom/tunnel-server.git"
+  },
   "main": "server/index.js",
+  "bin": {
+    "tunnel": "./cli.js"
+  },
   "scripts": {
     "start": "node server/index.js",
     "dev": "node server/local-dev.js",
     "test": "jest",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "cli": "node cli.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -19,7 +28,15 @@
     "rate-limiter-flexible": "^7.1.1",
     "uuid": "^11.1.0",
     "winston": "^3.17.0",
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "commander": "^14.0.0",
+    "chalk": "^5.4.1",
+    "inquirer": "^12.7.0",
+    "ora": "^8.0.1",
+    "conf": "^12.0.0",
+    "update-notifier": "^7.3.1",
+    "figlet": "^1.8.2",
+    "boxen": "^8.0.1"
   },
   "devDependencies": {
     "eslint": "^8.55.0",
