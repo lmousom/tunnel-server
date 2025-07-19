@@ -3,7 +3,7 @@
 const { Command } = require('commander');
 const chalk = require('chalk').default;
 const inquirer = require('inquirer').default;
-const ora = require('ora');
+const ora = require('ora').default;
 const Conf = require('conf').default;
 const updateNotifier = require('update-notifier').default;
 const figlet = require('figlet');
@@ -89,19 +89,63 @@ program
         maxReconnectAttempts: parseInt(options.maxReconnectAttempts)
       });
 
+      // Set up event listeners for connection status
+      let isConnected = false;
+      let connectionTimeout;
+
+      // Handle successful connection
+      client.on('connected', () => {
+        if (!isConnected) {
+          isConnected = true;
+          clearTimeout(connectionTimeout);
+          spinner.succeed(chalk.green('Connected to tunnel server!'));
+          console.log(chalk.cyan(`\n🔗 Tunnel active: ${chalk.white(options.host)}:${chalk.white(options.port)} → ${chalk.white(options.server)}`));
+          console.log(chalk.cyan(`📊 Client ID: ${chalk.white(options.clientId)}`));
+          console.log(chalk.gray('\nPress Ctrl+C to disconnect'));
+        }
+      });
+
+      // Handle connection errors
+      client.on('error', (error) => {
+        spinner.fail(chalk.red('Connection failed'));
+        console.error(chalk.red(error.message));
+        process.exit(1);
+      });
+
+      // Handle disconnection
+      client.on('disconnected', () => {
+        if (isConnected) {
+          isConnected = false;
+          console.log(chalk.yellow('\nDisconnected from tunnel server'));
+        }
+      });
+
+      // Set connection timeout
+      connectionTimeout = setTimeout(() => {
+        if (!isConnected) {
+          spinner.fail(chalk.red('Connection timeout'));
+          console.error(chalk.red('Failed to connect within 30 seconds'));
+          process.exit(1);
+        }
+      }, 30000);
+
       client.connect();
 
       // Handle graceful shutdown
       process.on('SIGINT', () => {
-        spinner.stop();
-        console.log(chalk.yellow('\nDisconnecting from tunnel server...'));
+        if (isConnected) {
+          spinner.stop();
+          console.log(chalk.yellow('\nDisconnecting from tunnel server...'));
+        }
         client.disconnect();
         process.exit(0);
       });
 
       process.on('SIGTERM', () => {
-        spinner.stop();
-        console.log(chalk.yellow('\nDisconnecting from tunnel server...'));
+        if (isConnected) {
+          spinner.stop();
+          console.log(chalk.yellow('\nDisconnecting from tunnel server...'));
+        }
         client.disconnect();
         process.exit(0);
       });

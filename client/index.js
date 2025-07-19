@@ -1,5 +1,6 @@
 const WebSocket = require('ws');
 const http = require('http');
+const { EventEmitter } = require('events');
 const logger = require('../utils/logger');
 const config = require('../config');
 const ProtobufHandler = require('../utils/protobuf-handler');
@@ -13,8 +14,9 @@ const httpAgent = new http.Agent({
   timeout: 60000, // Socket timeout
 });
 
-class TunnelClient {
+class TunnelClient extends EventEmitter {
   constructor (options = {}) {
+    super();
     this.clientId = options.clientId || 'default-client';
     this.serverUrl = options.serverUrl || process.env.SERVER_URL || 'ws://localhost:8080';
     this.localPort = options.localPort || parseInt(process.env.LOCAL_PORT) || 3000;
@@ -43,6 +45,9 @@ class TunnelClient {
         this.reconnectAttempts = 0;
         logger.info('Connected to tunnel server', { clientId: this.clientId });
         
+        // Emit connected event
+        this.emit('connected');
+        
         // Register with the server
         this.register();
       });
@@ -59,6 +64,9 @@ class TunnelClient {
           reason: reason.toString(),
         });
         
+        // Emit disconnected event
+        this.emit('disconnected', { code, reason: reason.toString() });
+        
         this.handleReconnect();
       });
 
@@ -67,6 +75,9 @@ class TunnelClient {
           clientId: this.clientId,
           error: err.message,
         });
+        
+        // Emit error event
+        this.emit('error', err);
       });
 
       // Heartbeat to keep connection alive
@@ -79,6 +90,10 @@ class TunnelClient {
         clientId: this.clientId,
         error: err.message,
       });
+      
+      // Emit error event
+      this.emit('error', err);
+      
       this.handleReconnect();
     }
   }

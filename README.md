@@ -9,7 +9,7 @@ A secure, production-ready tunnel server built with Node.js that allows you to e
 -  **Reliability**: Automatic reconnection, graceful shutdown, error handling
 -  **Performance**: Connection pooling, request timeouts, memory management
 -  **Developer Friendly**: Environment configuration, development mode with SSL
--  **Modern CLI**: Interactive setup wizard, configuration management, beautiful UI
+-  **Modern CLI**: Interactive setup wizard, configuration management
 
 ## Architecture
 
@@ -71,7 +71,6 @@ node cli.js connect -s ws://localhost:8080 -p 3000 -c my-client
 node client/index.js
 ```
 
-For detailed CLI documentation, see [CLI_README.md](CLI_README.md).
 
 ## Configuration
 
@@ -234,13 +233,6 @@ The tunnel server includes a modern, feature-rich CLI tool for easy client manag
 
 ### CLI Features
 
-- 🚀 **Interactive Setup Wizard** - Guided configuration with validation
-- 🎨 **Beautiful UI** - Colored output, spinners, and ASCII art
-- ⚙️ **Configuration Management** - Save, edit, and reset settings
-- 🔗 **Multiple Connection Modes** - Full control or quick connect
-- 📊 **Status Information** - View current configuration and usage
-- 🔄 **Auto-reconnection** - Robust connection handling
-- 📝 **Comprehensive Help** - Detailed documentation and examples
 
 ### Quick CLI Examples
 
@@ -257,8 +249,6 @@ node cli.js config --show
 # Get help
 node cli.js help
 ```
-
-For complete CLI documentation, see [CLI_README.md](CLI_README.md).
 
 ## Contributing
 
