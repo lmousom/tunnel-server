@@ -45,12 +45,17 @@ class TunnelManager {
     // Set up message listener for this client
     ws.on('message', (msg) => {
       try {
-        const data = JSON.parse(msg);
+        // Use protobuf handler to parse messages
+        const data = this.protobufHandler.parseMessage(msg);
         if (data.type === 'response') {
           this.handleResponse(data.reqId, data);
         }
       } catch (err) {
-        logger.error('Error parsing client message', { clientId, error: err.message });
+        logger.error('Error parsing client message', { 
+          clientId, 
+          error: err.message,
+          useProtobuf: this.protobufHandler.isProtobufAvailable()
+        });
       }
     });
     
