@@ -87,10 +87,30 @@ class TunnelManager {
     return this.clients.get(clientId);
   }
 
+  /**
+   * Robust client ID extraction from tunnel path
+   * @param {string} pathname - URL pathname
+   * @returns {string|null} Client ID or null if invalid
+   */
+  extractClientId(pathname) {
+    if (!pathname || typeof pathname !== 'string') {
+      return null;
+    }
+
+    // Normalize the path (remove multiple slashes, handle trailing slashes)
+    const normalizedPath = pathname.replace(/\/+/g, '/').replace(/\/$/, '');
+    
+    // Split by slashes and filter out empty parts
+    const pathParts = normalizedPath.split('/').filter(part => part.length > 0);
+    
+    // Return first part as client ID, or null if no parts
+    return pathParts.length > 0 ? pathParts[0] : null;
+  }
+
   // Handle incoming HTTP request
   async handleRequest (req, res) {
     const url = new URL(req.url, `http://${req.headers.host}`);
-    const clientId = url.pathname.split('/')[1];
+    const clientId = this.extractClientId(url.pathname);
     
     if (!clientId) {
       res.writeHead(400);

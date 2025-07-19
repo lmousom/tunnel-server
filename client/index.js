@@ -107,12 +107,46 @@ class TunnelClient {
     }
   }
 
+  /**
+   * Robust path handling that extracts the local path from tunnel requests
+   * @param {string} tunnelPath - Full path from tunnel (e.g., "/mousom/api/users")
+   * @param {string} clientId - The client ID to strip
+   * @returns {string} Local path for the target server
+   */
+  extractLocalPath(tunnelPath, clientId) {
+    // Handle edge cases
+    if (!tunnelPath || typeof tunnelPath !== 'string') {
+      return '/';
+    }
+
+    // Normalize the path (remove multiple slashes, handle trailing slashes)
+    const normalizedPath = tunnelPath.replace(/\/+/g, '/').replace(/\/$/, '');
+    
+    // Split by slashes and filter out empty parts
+    const pathParts = normalizedPath.split('/').filter(part => part.length > 0);
+    
+    // If no parts or first part doesn't match client ID, return root
+    if (pathParts.length === 0 || pathParts[0] !== clientId) {
+      return '/';
+    }
+    
+    // Remove the client ID and reconstruct the path
+    const localParts = pathParts.slice(1);
+    
+    // If no remaining parts, return root
+    if (localParts.length === 0) {
+      return '/';
+    }
+    
+    // Reconstruct the local path with leading slash
+    return '/' + localParts.join('/');
+  }
+
   async handleRequest (data) {
     const { reqId, method, path, headers, body } = data;
     
-    // Strip the client ID from the path
-    const pathParts = path.split('/');
-    const localPath = pathParts.slice(2).join('/') || '/';
+    // Use robust path extraction
+    const localPath = this.extractLocalPath(path, this.clientId);
     
     logger.debug('Handling request', {
       clientId: this.clientId,
