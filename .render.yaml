@@ -2,7 +2,7 @@ services:
   - type: web
     name: tunnel-server
     env: node
-    buildCommand: npm install && npm run proto:generate
+    buildCommand: npm install
     startCommand: node server/index.js
     plan: free
     envVars:

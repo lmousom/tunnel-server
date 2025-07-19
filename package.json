@@ -18,9 +18,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "cli": "node cli.js",
-    "proto:generate": "pbjs -t static-module -w commonjs -o proto/tunnel_pb.js proto/tunnel.proto && pbts -o proto/tunnel_pb.d.ts proto/tunnel_pb.js",
-    "build": "npm run proto:generate",
-    "postinstall": "npm run proto:generate"
+    "proto:generate": "pbjs -t static-module -w commonjs -o proto/tunnel_pb.js proto/tunnel.proto && pbts -o proto/tunnel_pb.d.ts proto/tunnel_pb.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
