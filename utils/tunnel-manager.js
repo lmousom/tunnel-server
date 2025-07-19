@@ -40,6 +40,18 @@ class TunnelManager {
 
     this.connectionCount++;
     
+    // Set up message listener for this client
+    ws.on('message', (msg) => {
+      try {
+        const data = JSON.parse(msg);
+        if (data.type === 'response') {
+          this.handleResponse(data.reqId, data);
+        }
+      } catch (err) {
+        logger.error('Error parsing client message', { clientId, error: err.message });
+      }
+    });
+    
     logger.info('Client registered successfully', { 
       clientId, 
       ip: req.socket.remoteAddress,
@@ -110,20 +122,7 @@ class TunnelManager {
       startedAt: new Date(),
     });
 
-    // Set up response listener
-    const listener = (msg) => {
-      try {
-        const parsed = JSON.parse(msg);
-        if (parsed.reqId === reqId) {
-          this.handleResponse(reqId, parsed);
-        }
-      } catch (err) {
-        logger.error('Error parsing response', { reqId, error: err.message });
-        this.handleRequestError(reqId, err);
-      }
-    };
 
-    client.ws.on('message', listener);
 
     // Send request to client
     let body = '';
