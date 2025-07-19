@@ -30,3 +30,11 @@ services:
         value: "info"
       - key: SSL_ENABLED
         value: "false"
+      - key: CLIENT_ID
+        value: "mousom"
+      - key: SERVER_URL
+        value: "wss://tunnel-server-l1tj.onrender.com"
+      - key: LOCAL_PORT
+        value: "3000"
+      - key: LOCAL_HOST
+        value: "localhost"

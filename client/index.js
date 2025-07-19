@@ -110,17 +110,22 @@ class TunnelClient {
   async handleRequest (data) {
     const { reqId, method, path, headers, body } = data;
     
+    // Strip the client ID from the path
+    const pathParts = path.split('/');
+    const localPath = pathParts.slice(2).join('/') || '/';
+    
     logger.debug('Handling request', {
       clientId: this.clientId,
       reqId,
       method,
-      path,
+      originalPath: path,
+      localPath,
     });
 
     const options = {
       hostname: this.localHost,
       port: this.localPort,
-      path,
+      path: localPath,
       method,
       headers: this.sanitizeHeaders(headers),
       timeout: config.requestTimeout,
