@@ -17,7 +17,10 @@
     "test": "jest",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "cli": "node cli.js"
+    "cli": "node cli.js",
+    "proto:generate": "pbjs -t static-module -w commonjs -o proto/tunnel_pb.js proto/tunnel.proto && pbts -o proto/tunnel_pb.d.ts proto/tunnel_pb.js",
+    "build": "npm run proto:generate",
+    "postinstall": "npm run proto:generate"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -36,7 +39,8 @@
     "conf": "^12.0.0",
     "update-notifier": "^7.3.1",
     "figlet": "^1.8.2",
-    "boxen": "^8.0.1"
+    "boxen": "^8.0.1",
+    "protobufjs": "^7.2.6"
   },
   "devDependencies": {
     "eslint": "^8.55.0",

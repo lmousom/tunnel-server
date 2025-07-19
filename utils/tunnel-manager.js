@@ -2,12 +2,14 @@ const { v4: uuidv4 } = require('uuid');
 const logger = require('./logger');
 const { validateClientId, sanitizeHeaders } = require('./security');
 const config = require('../config');
+const ProtobufHandler = require('./protobuf-handler');
 
 class TunnelManager {
   constructor () {
     this.clients = new Map();
     this.pendingRequests = new Map();
     this.connectionCount = 0;
+    this.protobufHandler = new ProtobufHandler();
   }
 
   // Register a new client
@@ -144,30 +146,37 @@ class TunnelManager {
 
 
 
-    // Send request to client with optimized buffer handling
+    // Send request to client with protobuf optimization
     const bodyChunks = [];
     req.on('data', chunk => bodyChunks.push(chunk));
     req.on('end', () => {
       const body = bodyChunks.length > 0 ? Buffer.concat(bodyChunks) : Buffer.alloc(0);
-      const requestData = {
-        type: 'request',
+      
+      // Create protobuf message
+      const message = this.protobufHandler.createRequestMessage(
         reqId,
-        method: req.method,
-        path: url.pathname + url.search,
-        headers: sanitizeHeaders(req.headers),
-        body: body.toString('base64'), // Convert buffer to base64 for JSON transmission
-        bodyLength: body.length,
-      };
+        req.method,
+        url.pathname + url.search,
+        sanitizeHeaders(req.headers),
+        body
+      );
 
-      // Send as binary message for better performance
-      const messageBuffer = Buffer.from(JSON.stringify(requestData));
-      client.ws.send(messageBuffer, { binary: true });
+      // Send message (protobuf returns buffer, JSON returns object)
+      if (Buffer.isBuffer(message)) {
+        client.ws.send(message, { binary: true });
+      } else {
+        const messageBuffer = Buffer.from(JSON.stringify(message));
+        client.ws.send(messageBuffer, { binary: true });
+      }
+      
       logger.debug('Request sent to client', { 
         reqId, 
         clientId, 
         method: req.method, 
         path: url.pathname,
         bodySize: body.length,
+        useProtobuf: this.protobufHandler.isProtobufAvailable(),
+        messageSize: this.protobufHandler.getMessageSize(message)
       });
     });
 
@@ -194,9 +203,9 @@ class TunnelManager {
     try {
       res.writeHead(response.status || 200, response.headers || {});
       
-      // Convert base64 body back to buffer for response
+      // Handle body (protobuf returns buffer, JSON returns base64 string)
       if (response.body) {
-        const bodyBuffer = Buffer.from(response.body, 'base64');
+        const bodyBuffer = Buffer.isBuffer(response.body) ? response.body : Buffer.from(response.body, 'base64');
         res.end(bodyBuffer);
       } else {
         res.end('');
@@ -206,7 +215,8 @@ class TunnelManager {
         reqId, 
         status: response.status,
         clientId: request.clientId,
-        bodySize: response.body ? Buffer.from(response.body, 'base64').length : 0,
+        bodySize: response.body ? (Buffer.isBuffer(response.body) ? response.body.length : Buffer.from(response.body, 'base64').length) : 0,
+        useProtobuf: this.protobufHandler.isProtobufAvailable()
       });
     } catch (err) {
       logger.error('Error sending response', { reqId, error: err.message });

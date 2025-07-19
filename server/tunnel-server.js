@@ -6,12 +6,14 @@ const cors = require('cors');
 const logger = require('../utils/logger');
 const { wsRateLimit, httpRateLimit } = require('../utils/security');
 const TunnelManager = require('../utils/tunnel-manager');
+const ProtobufHandler = require('../utils/protobuf-handler');
 const config = require('../config');
 
 class TunnelServer {
   constructor (server) {
     this.server = server;
     this.tunnelManager = new TunnelManager();
+    this.protobufHandler = new ProtobufHandler();
     this.wss = null;
     this.app = null;
     this.setupExpress();
@@ -91,20 +93,27 @@ class TunnelServer {
 
       ws.on('message', (msg) => {
         try {
-          // Handle both binary and text messages for backward compatibility
-          const messageData = msg instanceof Buffer ? msg.toString() : msg;
-          const data = JSON.parse(messageData);
+          // Parse message using protobuf handler
+          const data = this.protobufHandler.parseMessage(msg);
           
           if (data.type === 'register') {
             clientId = data.clientId;
             
             if (this.tunnelManager.registerClient(clientId, ws, req)) {
-              const responseBuffer = Buffer.from(JSON.stringify({ 
-                type: 'registered', 
+              const response = this.protobufHandler.createRegisteredMessage(
                 clientId,
-                message: 'Successfully registered', 
-              }));
-              ws.send(responseBuffer, { binary: true });
+                'Successfully registered',
+                true,
+                { version: '1.0.0', protocol: this.protobufHandler.isProtobufAvailable() ? 'protobuf' : 'json' }
+              );
+              
+              // Send response (protobuf returns buffer, JSON returns object)
+              if (Buffer.isBuffer(response)) {
+                ws.send(response, { binary: true });
+              } else {
+                const responseBuffer = Buffer.from(JSON.stringify(response));
+                ws.send(responseBuffer, { binary: true });
+              }
             } else {
               ws.close(1008, 'Registration failed');
             }
@@ -115,7 +124,8 @@ class TunnelServer {
         } catch (err) {
           logger.error('WebSocket message error', { 
             error: err.message, 
-            clientId, 
+            clientId,
+            useProtobuf: this.protobufHandler.isProtobufAvailable()
           });
         }
       });

@@ -2,6 +2,7 @@ const WebSocket = require('ws');
 const http = require('http');
 const logger = require('../utils/logger');
 const config = require('../config');
+const ProtobufHandler = require('../utils/protobuf-handler');
 
 // Create HTTP agent with connection pooling for better performance
 const httpAgent = new http.Agent({
@@ -25,6 +26,7 @@ class TunnelClient {
     this.reconnectAttempts = 0;
     this.isConnected = false;
     this.pendingRequests = new Map();
+    this.protobufHandler = new ProtobufHandler();
   }
 
   connect () {
@@ -83,28 +85,40 @@ class TunnelClient {
 
   register () {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      const registerMessage = {
-        type: 'register',
-        clientId: this.clientId,
-      };
+      const message = this.protobufHandler.createRegisterMessage(this.clientId, {
+        version: '1.0.0',
+        platform: process.platform,
+        nodeVersion: process.version
+      });
       
-      // Send as binary message for better performance
-      const messageBuffer = Buffer.from(JSON.stringify(registerMessage));
-      this.ws.send(messageBuffer, { binary: true });
-      logger.debug('Registration message sent', { clientId: this.clientId });
+      // Send message (protobuf returns buffer, JSON returns object)
+      if (Buffer.isBuffer(message)) {
+        this.ws.send(message, { binary: true });
+      } else {
+        const messageBuffer = Buffer.from(JSON.stringify(message));
+        this.ws.send(messageBuffer, { binary: true });
+      }
+      
+      logger.debug('Registration message sent', { 
+        clientId: this.clientId,
+        useProtobuf: this.protobufHandler.isProtobufAvailable(),
+        messageSize: this.protobufHandler.getMessageSize(message)
+      });
     }
   }
 
   handleMessage (msg) {
     try {
-      // Handle both binary and text messages for backward compatibility
-      const messageData = msg instanceof Buffer ? msg.toString() : msg;
-      const data = JSON.parse(messageData);
+      // Parse message using protobuf handler
+      const data = this.protobufHandler.parseMessage(msg);
       
       if (data.type === 'registered') {
         logger.info('Successfully registered with tunnel server', {
           clientId: this.clientId,
           message: data.message,
+          success: data.success,
+          serverInfo: data.serverInfo,
+          useProtobuf: this.protobufHandler.isProtobufAvailable()
         });
       } else if (data.type === 'request') {
         this.handleRequest(data);
@@ -116,6 +130,7 @@ class TunnelClient {
         clientId: this.clientId,
         error: err.message,
         message: msg.toString(),
+        useProtobuf: this.protobufHandler.isProtobufAvailable()
       });
     }
   }
@@ -189,14 +204,14 @@ class TunnelClient {
       
       res.on('end', () => {
         const responseBody = responseChunks.length > 0 ? Buffer.concat(responseChunks) : Buffer.alloc(0);
-        const response = {
-          type: 'response',
+        
+        // Create response using protobuf handler
+        const response = this.protobufHandler.createResponseMessage(
           reqId,
-          status: res.statusCode,
-          headers: res.headers,
-          body: responseBody.toString('base64'), // Convert to base64 for efficient transmission
-          bodyLength: responseBody.length,
-        };
+          res.statusCode,
+          res.headers,
+          responseBody
+        );
 
         this.sendResponse(response);
         
@@ -205,6 +220,8 @@ class TunnelClient {
           reqId,
           status: res.statusCode,
           responseSize: responseBody.length,
+          useProtobuf: this.protobufHandler.isProtobufAvailable(),
+          messageSize: this.protobufHandler.getMessageSize(response)
         });
       });
     });
@@ -216,14 +233,13 @@ class TunnelClient {
         error: err.message,
       });
 
-      const errorResponse = {
-        type: 'response',
+      const errorBody = Buffer.from(`Tunnel error: ${err.message}`);
+      const errorResponse = this.protobufHandler.createResponseMessage(
         reqId,
-        status: 502,
-        headers: { 'content-type': 'text/plain' },
-        body: Buffer.from(`Tunnel error: ${err.message}`).toString('base64'),
-        bodyLength: Buffer.from(`Tunnel error: ${err.message}`).length,
-      };
+        502,
+        { 'content-type': 'text/plain' },
+        errorBody
+      );
 
       this.sendResponse(errorResponse);
     });
@@ -236,21 +252,20 @@ class TunnelClient {
 
       req.destroy();
       
-      const timeoutResponse = {
-        type: 'response',
+      const timeoutBody = Buffer.from('Gateway Timeout');
+      const timeoutResponse = this.protobufHandler.createResponseMessage(
         reqId,
-        status: 504,
-        headers: { 'content-type': 'text/plain' },
-        body: Buffer.from('Gateway Timeout').toString('base64'),
-        bodyLength: Buffer.from('Gateway Timeout').length,
-      };
+        504,
+        { 'content-type': 'text/plain' },
+        timeoutBody
+      );
 
       this.sendResponse(timeoutResponse);
     });
 
     if (body) {
-      // Convert base64 body back to buffer for local request
-      const bodyBuffer = Buffer.from(body, 'base64');
+      // Handle body (protobuf returns buffer, JSON returns base64 string)
+      const bodyBuffer = Buffer.isBuffer(body) ? body : Buffer.from(body, 'base64');
       req.write(bodyBuffer);
     }
     
@@ -260,9 +275,21 @@ class TunnelClient {
   sendResponse (response) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       try {
-        // Send as binary message for better performance
-        const messageBuffer = Buffer.from(JSON.stringify(response));
-        this.ws.send(messageBuffer, { binary: true });
+        // Send message (protobuf returns buffer, JSON returns object)
+        if (Buffer.isBuffer(response)) {
+          this.ws.send(response, { binary: true });
+        } else {
+          const messageBuffer = Buffer.from(JSON.stringify(response));
+          this.ws.send(messageBuffer, { binary: true });
+        }
+        
+        logger.debug('Response sent to server', { 
+          reqId: response.reqId, 
+          status: response.status,
+          bodySize: response.bodyLength || 0,
+          useProtobuf: this.protobufHandler.isProtobufAvailable(),
+          messageSize: this.protobufHandler.getMessageSize(response)
+        });
       } catch (err) {
         logger.error('Failed to send response', {
           clientId: this.clientId,

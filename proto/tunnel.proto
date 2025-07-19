@@ -1,0 +1,91 @@
+syntax = "proto3";
+
+package tunnel;
+
+// Message types enum
+enum MessageType {
+  UNKNOWN = 0;
+  REGISTER = 1;
+  REGISTERED = 2;
+  REQUEST = 3;
+  RESPONSE = 4;
+  PING = 5;
+  PONG = 6;
+  ERROR = 7;
+}
+
+// Header key-value pair for HTTP headers
+message Header {
+  string key = 1;
+  string value = 2;
+}
+
+// Register message from client to server
+message RegisterMessage {
+  string client_id = 1;
+  string version = 2;
+  map<string, string> metadata = 3;
+}
+
+// Registration confirmation from server to client
+message RegisteredMessage {
+  string client_id = 1;
+  string message = 2;
+  bool success = 3;
+  map<string, string> server_info = 4;
+}
+
+// HTTP request message from server to client
+message RequestMessage {
+  string req_id = 1;
+  string method = 2;
+  string path = 3;
+  repeated Header headers = 4;
+  bytes body = 5;
+  int32 body_length = 6;
+  int64 timestamp = 7;
+}
+
+// HTTP response message from client to server
+message ResponseMessage {
+  string req_id = 1;
+  int32 status = 2;
+  repeated Header headers = 3;
+  bytes body = 4;
+  int32 body_length = 5;
+  int64 timestamp = 6;
+}
+
+// Error message
+message ErrorMessage {
+  string req_id = 1;
+  string error_code = 2;
+  string message = 3;
+  int64 timestamp = 4;
+}
+
+// Ping/Pong messages for heartbeat
+message PingMessage {
+  int64 timestamp = 1;
+}
+
+message PongMessage {
+  int64 timestamp = 1;
+  int64 latency = 2;
+}
+
+// Main tunnel message wrapper
+message TunnelMessage {
+  MessageType type = 1;
+  string message_id = 2;
+  int64 timestamp = 3;
+  
+  // Only one of these fields should be set based on the type
+  RegisterMessage register = 4;
+  RegisteredMessage registered = 5;
+  RequestMessage request = 6;
+  ResponseMessage response = 7;
+  ErrorMessage error = 8;
+  PingMessage ping = 9;
+  PongMessage pong = 10;
+} 
