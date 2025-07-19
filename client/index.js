@@ -3,6 +3,15 @@ const http = require('http');
 const logger = require('../utils/logger');
 const config = require('../config');
 
+// Create HTTP agent with connection pooling for better performance
+const httpAgent = new http.Agent({
+  keepAlive: true,
+  keepAliveMsecs: 30000, // Keep connections alive for 30 seconds
+  maxSockets: 50, // Maximum number of sockets per host
+  maxFreeSockets: 10, // Maximum number of idle sockets
+  timeout: 60000, // Socket timeout
+});
+
 class TunnelClient {
   constructor (options = {}) {
     this.clientId = options.clientId || 'default-client';
@@ -79,14 +88,18 @@ class TunnelClient {
         clientId: this.clientId,
       };
       
-      this.ws.send(JSON.stringify(registerMessage));
+      // Send as binary message for better performance
+      const messageBuffer = Buffer.from(JSON.stringify(registerMessage));
+      this.ws.send(messageBuffer, { binary: true });
       logger.debug('Registration message sent', { clientId: this.clientId });
     }
   }
 
   handleMessage (msg) {
     try {
-      const data = JSON.parse(msg);
+      // Handle both binary and text messages for backward compatibility
+      const messageData = msg instanceof Buffer ? msg.toString() : msg;
+      const data = JSON.parse(messageData);
       
       if (data.type === 'registered') {
         logger.info('Successfully registered with tunnel server', {
@@ -143,7 +156,7 @@ class TunnelClient {
   }
 
   async handleRequest (data) {
-    const { reqId, method, path, headers, body } = data;
+    const { reqId, method, path, headers, body, bodyLength } = data;
     
     // Use robust path extraction
     const localPath = this.extractLocalPath(path, this.clientId);
@@ -154,6 +167,7 @@ class TunnelClient {
       method,
       originalPath: path,
       localPath,
+      bodySize: bodyLength || 0,
     });
 
     const options = {
@@ -163,22 +177,25 @@ class TunnelClient {
       method,
       headers: this.sanitizeHeaders(headers),
       timeout: config.requestTimeout,
+      agent: httpAgent, // Use connection pooling
     };
 
     const req = http.request(options, (res) => {
-      let responseBody = '';
+      const responseChunks = [];
       
       res.on('data', chunk => {
-        responseBody += chunk;
+        responseChunks.push(chunk);
       });
       
       res.on('end', () => {
+        const responseBody = responseChunks.length > 0 ? Buffer.concat(responseChunks) : Buffer.alloc(0);
         const response = {
           type: 'response',
           reqId,
           status: res.statusCode,
           headers: res.headers,
-          body: responseBody,
+          body: responseBody.toString('base64'), // Convert to base64 for efficient transmission
+          bodyLength: responseBody.length,
         };
 
         this.sendResponse(response);
@@ -187,6 +204,7 @@ class TunnelClient {
           clientId: this.clientId,
           reqId,
           status: res.statusCode,
+          responseSize: responseBody.length,
         });
       });
     });
@@ -203,7 +221,8 @@ class TunnelClient {
         reqId,
         status: 502,
         headers: { 'content-type': 'text/plain' },
-        body: `Tunnel error: ${err.message}`,
+        body: Buffer.from(`Tunnel error: ${err.message}`).toString('base64'),
+        bodyLength: Buffer.from(`Tunnel error: ${err.message}`).length,
       };
 
       this.sendResponse(errorResponse);
@@ -222,14 +241,17 @@ class TunnelClient {
         reqId,
         status: 504,
         headers: { 'content-type': 'text/plain' },
-        body: 'Gateway Timeout',
+        body: Buffer.from('Gateway Timeout').toString('base64'),
+        bodyLength: Buffer.from('Gateway Timeout').length,
       };
 
       this.sendResponse(timeoutResponse);
     });
 
     if (body) {
-      req.write(body);
+      // Convert base64 body back to buffer for local request
+      const bodyBuffer = Buffer.from(body, 'base64');
+      req.write(bodyBuffer);
     }
     
     req.end();
@@ -238,7 +260,9 @@ class TunnelClient {
   sendResponse (response) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       try {
-        this.ws.send(JSON.stringify(response));
+        // Send as binary message for better performance
+        const messageBuffer = Buffer.from(JSON.stringify(response));
+        this.ws.send(messageBuffer, { binary: true });
       } catch (err) {
         logger.error('Failed to send response', {
           clientId: this.clientId,
@@ -297,6 +321,9 @@ class TunnelClient {
     if (this.ws) {
       this.ws.close();
     }
+    
+    // Clean up HTTP agent connections
+    httpAgent.destroy();
   }
 }
 

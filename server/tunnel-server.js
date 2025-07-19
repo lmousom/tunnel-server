@@ -46,6 +46,8 @@ class TunnelServer {
       res.json(stats); 
     });
 
+
+
     // Main tunnel endpoint
     this.app.all('*', async (req, res) => {
       // Rate limiting
@@ -89,17 +91,20 @@ class TunnelServer {
 
       ws.on('message', (msg) => {
         try {
-          const data = JSON.parse(msg);
+          // Handle both binary and text messages for backward compatibility
+          const messageData = msg instanceof Buffer ? msg.toString() : msg;
+          const data = JSON.parse(messageData);
           
           if (data.type === 'register') {
             clientId = data.clientId;
             
             if (this.tunnelManager.registerClient(clientId, ws, req)) {
-              ws.send(JSON.stringify({ 
+              const responseBuffer = Buffer.from(JSON.stringify({ 
                 type: 'registered', 
                 clientId,
                 message: 'Successfully registered', 
               }));
+              ws.send(responseBuffer, { binary: true });
             } else {
               ws.close(1008, 'Registration failed');
             }
