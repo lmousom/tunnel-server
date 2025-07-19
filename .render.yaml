@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: tunnel-server
+    env: node
+    buildCommand: npm install
+    startCommand: node server/index.js
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: HOST
+        value: 0.0.0.0
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        value: "*"
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "900000"
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: "100"
+      - key: MAX_CONNECTIONS
+        value: "100"
+      - key: REQUEST_TIMEOUT
+        value: "30000"
+      - key: CONNECTION_TIMEOUT
+        value: "60000"
+      - key: LOG_LEVEL
+        value: "info"
+      - key: SSL_ENABLED
+        value: "false"
