@@ -202,8 +202,6 @@ ALLOWED_ORIGINS=https://yourdomain.com
 LOG_LEVEL=info
 ```
 
-### Render.com Deployment
-The project includes a `.render.yaml` file for easy deployment on Render.com.
 
 ### Health Checks
 The server provides health check endpoints for load balancers and monitoring systems.
