@@ -48,8 +48,6 @@ class TunnelServer {
       res.json(stats); 
     });
 
-
-
     // Main tunnel endpoint
     this.app.all('*', async (req, res) => {
       // Rate limiting
@@ -104,7 +102,7 @@ class TunnelServer {
                 clientId,
                 'Successfully registered',
                 true,
-                { version: '1.0.0', protocol: this.protobufHandler.isProtobufAvailable() ? 'protobuf' : 'json' }
+                { version: '1.0.0', protocol: this.protobufHandler.isProtobufAvailable() ? 'protobuf' : 'json' },
               );
               
               // Send response (protobuf returns buffer, JSON returns object)
@@ -125,7 +123,7 @@ class TunnelServer {
           logger.error('WebSocket message error', { 
             error: err.message, 
             clientId,
-            useProtobuf: this.protobufHandler.isProtobufAvailable()
+            useProtobuf: this.protobufHandler.isProtobufAvailable(),
           });
         }
       });

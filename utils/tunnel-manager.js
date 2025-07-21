@@ -54,7 +54,7 @@ class TunnelManager {
         logger.error('Error parsing client message', { 
           clientId, 
           error: err.message,
-          useProtobuf: this.protobufHandler.isProtobufAvailable()
+          useProtobuf: this.protobufHandler.isProtobufAvailable(),
         });
       }
     });
@@ -99,7 +99,7 @@ class TunnelManager {
    * @param {string} pathname - URL pathname
    * @returns {string|null} Client ID or null if invalid
    */
-  extractClientId(pathname) {
+  extractClientId (pathname) {
     if (!pathname || typeof pathname !== 'string') {
       return null;
     }
@@ -149,8 +149,6 @@ class TunnelManager {
       startedAt: new Date(),
     });
 
-
-
     // Send request to client with protobuf optimization
     const bodyChunks = [];
     req.on('data', chunk => bodyChunks.push(chunk));
@@ -163,7 +161,7 @@ class TunnelManager {
         req.method,
         url.pathname + url.search,
         sanitizeHeaders(req.headers),
-        body
+        body,
       );
 
       // Send message (protobuf returns buffer, JSON returns object)
@@ -181,7 +179,7 @@ class TunnelManager {
         path: url.pathname,
         bodySize: body.length,
         useProtobuf: this.protobufHandler.isProtobufAvailable(),
-        messageSize: this.protobufHandler.getMessageSize(message)
+        messageSize: this.protobufHandler.getMessageSize(message),
       });
     });
 
@@ -221,7 +219,7 @@ class TunnelManager {
         status: response.status,
         clientId: request.clientId,
         bodySize: response.body ? (Buffer.isBuffer(response.body) ? response.body.length : Buffer.from(response.body, 'base64').length) : 0,
-        useProtobuf: this.protobufHandler.isProtobufAvailable()
+        useProtobuf: this.protobufHandler.isProtobufAvailable(),
       });
     } catch (err) {
       logger.error('Error sending response', { reqId, error: err.message });
@@ -271,8 +269,6 @@ class TunnelManager {
       clients: Array.from(this.clients.keys()),
     };
   }
-
-
 
   // Clean up inactive connections
   cleanupInactiveConnections () {

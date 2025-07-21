@@ -1,4 +1,3 @@
-const { v4: uuidv4 } = require('uuid');
 const logger = require('./logger');
 
 // Import generated protobuf classes
@@ -16,7 +15,7 @@ try {
 }
 
 class ProtobufHandler {
-  constructor() {
+  constructor () {
     this.useProtobuf = protobuf !== null && root !== null;
     this.messageIdCounter = 0;
     
@@ -31,7 +30,7 @@ class ProtobufHandler {
    * Generate a unique message ID
    * @returns {string} Unique message ID
    */
-  generateMessageId() {
+  generateMessageId () {
     this.messageIdCounter = (this.messageIdCounter + 1) % Number.MAX_SAFE_INTEGER;
     return `${Date.now()}-${this.messageIdCounter}`;
   }
@@ -41,7 +40,7 @@ class ProtobufHandler {
    * @param {Object} headers - HTTP headers object
    * @returns {Array} Array of Header objects
    */
-  headersToProtobuf(headers) {
+  headersToProtobuf (headers) {
     if (!this.useProtobuf) {
       return headers;
     }
@@ -50,7 +49,7 @@ class ProtobufHandler {
     for (const [key, value] of Object.entries(headers)) {
       headerArray.push({
         key: key.toLowerCase(),
-        value: value
+        value,
       });
     }
     return headerArray;
@@ -61,7 +60,7 @@ class ProtobufHandler {
    * @param {Array} headerArray - Array of Header objects
    * @returns {Object} HTTP headers object
    */
-  headersFromProtobuf(headerArray) {
+  headersFromProtobuf (headerArray) {
     if (!this.useProtobuf) {
       return headerArray;
     }
@@ -79,36 +78,36 @@ class ProtobufHandler {
    * @param {Object} metadata - Additional metadata
    * @returns {Buffer|Object} Serialized message
    */
-  createRegisterMessage(clientId, metadata = {}) {
+  createRegisterMessage (clientId, metadata = {}) {
     const messageId = this.generateMessageId();
     const timestamp = Date.now();
 
     if (this.useProtobuf) {
       const message = {
         type: root.tunnel.MessageType.REGISTER,
-        messageId: messageId,
-        timestamp: timestamp,
-        register: {
-          clientId: clientId,
-          version: '1.0.0',
-          metadata: metadata
-        }
-      };
-      
-      const TunnelMessage = root.tunnel.TunnelMessage;
-      const buffer = TunnelMessage.encode(message).finish();
-      return buffer;
-    } else {
-      // JSON fallback
-      return {
-        type: 'register',
         messageId,
         timestamp,
-        clientId,
-        version: '1.0.0',
-        metadata
+        register: {
+          clientId,
+          version: '1.0.0',
+          metadata,
+        },
       };
-    }
+      
+      const { TunnelMessage } = root.tunnel;
+      const buffer = TunnelMessage.encode(message).finish();
+      return buffer;
+    } 
+    // JSON fallback
+    return {
+      type: 'register',
+      messageId,
+      timestamp,
+      clientId,
+      version: '1.0.0',
+      metadata,
+    };
+    
   }
 
   /**
@@ -119,38 +118,38 @@ class ProtobufHandler {
    * @param {Object} serverInfo - Server information
    * @returns {Buffer|Object} Serialized message
    */
-  createRegisteredMessage(clientId, message, success = true, serverInfo = {}) {
+  createRegisteredMessage (clientId, message, success = true, serverInfo = {}) {
     const messageId = this.generateMessageId();
     const timestamp = Date.now();
 
     if (this.useProtobuf) {
       const tunnelMsg = {
         type: root.tunnel.MessageType.REGISTERED,
-        messageId: messageId,
-        timestamp: timestamp,
-        registered: {
-          clientId: clientId,
-          message: message,
-          success: success,
-          serverInfo: serverInfo
-        }
-      };
-      
-      const TunnelMessage = root.tunnel.TunnelMessage;
-      const buffer = TunnelMessage.encode(tunnelMsg).finish();
-      return buffer;
-    } else {
-      // JSON fallback
-      return {
-        type: 'registered',
         messageId,
         timestamp,
-        clientId,
-        message,
-        success,
-        serverInfo
+        registered: {
+          clientId,
+          message,
+          success,
+          serverInfo,
+        },
       };
-    }
+      
+      const { TunnelMessage } = root.tunnel;
+      const buffer = TunnelMessage.encode(tunnelMsg).finish();
+      return buffer;
+    } 
+    // JSON fallback
+    return {
+      type: 'registered',
+      messageId,
+      timestamp,
+      clientId,
+      message,
+      success,
+      serverInfo,
+    };
+    
   }
 
   /**
@@ -162,7 +161,7 @@ class ProtobufHandler {
    * @param {Buffer} body - Request body
    * @returns {Buffer|Object} Serialized message
    */
-  createRequestMessage(reqId, method, path, headers, body) {
+  createRequestMessage (reqId, method, path, headers, body) {
     const messageId = this.generateMessageId();
     const timestamp = Date.now();
     const bodyLength = body ? body.length : 0;
@@ -170,36 +169,36 @@ class ProtobufHandler {
     if (this.useProtobuf) {
       const tunnelMsg = {
         type: root.tunnel.MessageType.REQUEST,
-        messageId: messageId,
-        timestamp: timestamp,
-        request: {
-          reqId: reqId,
-          method: method,
-          path: path,
-          headers: this.headersToProtobuf(headers),
-          body: body || Buffer.alloc(0),
-          bodyLength: bodyLength,
-          timestamp: timestamp
-        }
-      };
-      
-      const TunnelMessage = root.tunnel.TunnelMessage;
-      const buffer = TunnelMessage.encode(tunnelMsg).finish();
-      return buffer;
-    } else {
-      // JSON fallback with base64 encoding for body
-      return {
-        type: 'request',
         messageId,
         timestamp,
-        reqId,
-        method,
-        path,
-        headers,
-        body: body ? body.toString('base64') : '',
-        bodyLength
+        request: {
+          reqId,
+          method,
+          path,
+          headers: this.headersToProtobuf(headers),
+          body: body || Buffer.alloc(0),
+          bodyLength,
+          timestamp,
+        },
       };
-    }
+      
+      const { TunnelMessage } = root.tunnel;
+      const buffer = TunnelMessage.encode(tunnelMsg).finish();
+      return buffer;
+    } 
+    // JSON fallback with base64 encoding for body
+    return {
+      type: 'request',
+      messageId,
+      timestamp,
+      reqId,
+      method,
+      path,
+      headers,
+      body: body ? body.toString('base64') : '',
+      bodyLength,
+    };
+    
   }
 
   /**
@@ -210,7 +209,7 @@ class ProtobufHandler {
    * @param {Buffer} body - Response body
    * @returns {Buffer|Object} Serialized message
    */
-  createResponseMessage(reqId, status, headers, body) {
+  createResponseMessage (reqId, status, headers, body) {
     const messageId = this.generateMessageId();
     const timestamp = Date.now();
     const bodyLength = body ? body.length : 0;
@@ -218,34 +217,34 @@ class ProtobufHandler {
     if (this.useProtobuf) {
       const tunnelMsg = {
         type: root.tunnel.MessageType.RESPONSE,
-        messageId: messageId,
-        timestamp: timestamp,
-        response: {
-          reqId: reqId,
-          status: status,
-          headers: this.headersToProtobuf(headers),
-          body: body || Buffer.alloc(0),
-          bodyLength: bodyLength,
-          timestamp: timestamp
-        }
-      };
-      
-      const TunnelMessage = root.tunnel.TunnelMessage;
-      const buffer = TunnelMessage.encode(tunnelMsg).finish();
-      return buffer;
-    } else {
-      // JSON fallback with base64 encoding for body
-      return {
-        type: 'response',
         messageId,
         timestamp,
-        reqId,
-        status,
-        headers,
-        body: body ? body.toString('base64') : '',
-        bodyLength
+        response: {
+          reqId,
+          status,
+          headers: this.headersToProtobuf(headers),
+          body: body || Buffer.alloc(0),
+          bodyLength,
+          timestamp,
+        },
       };
-    }
+      
+      const { TunnelMessage } = root.tunnel;
+      const buffer = TunnelMessage.encode(tunnelMsg).finish();
+      return buffer;
+    } 
+    // JSON fallback with base64 encoding for body
+    return {
+      type: 'response',
+      messageId,
+      timestamp,
+      reqId,
+      status,
+      headers,
+      body: body ? body.toString('base64') : '',
+      bodyLength,
+    };
+    
   }
 
   /**
@@ -255,68 +254,68 @@ class ProtobufHandler {
    * @param {string} message - Error message
    * @returns {Buffer|Object} Serialized message
    */
-  createErrorMessage(reqId, errorCode, message) {
+  createErrorMessage (reqId, errorCode, message) {
     const messageId = this.generateMessageId();
     const timestamp = Date.now();
 
     if (this.useProtobuf) {
       const tunnelMsg = {
         type: root.tunnel.MessageType.ERROR,
-        messageId: messageId,
-        timestamp: timestamp,
-        error: {
-          reqId: reqId || '',
-          errorCode: errorCode,
-          message: message,
-          timestamp: timestamp
-        }
-      };
-      
-      const TunnelMessage = root.tunnel.TunnelMessage;
-      const buffer = TunnelMessage.encode(tunnelMsg).finish();
-      return buffer;
-    } else {
-      // JSON fallback
-      return {
-        type: 'error',
         messageId,
         timestamp,
-        reqId: reqId || '',
-        errorCode,
-        message
+        error: {
+          reqId: reqId || '',
+          errorCode,
+          message,
+          timestamp,
+        },
       };
-    }
+      
+      const { TunnelMessage } = root.tunnel;
+      const buffer = TunnelMessage.encode(tunnelMsg).finish();
+      return buffer;
+    } 
+    // JSON fallback
+    return {
+      type: 'error',
+      messageId,
+      timestamp,
+      reqId: reqId || '',
+      errorCode,
+      message,
+    };
+    
   }
 
   /**
    * Create a ping message
    * @returns {Buffer|Object} Serialized message
    */
-  createPingMessage() {
+  createPingMessage () {
     const messageId = this.generateMessageId();
     const timestamp = Date.now();
 
     if (this.useProtobuf) {
       const tunnelMsg = {
         type: root.tunnel.MessageType.PING,
-        messageId: messageId,
-        timestamp: timestamp,
+        messageId,
+        timestamp,
         ping: {
-          timestamp: timestamp
-        }
+          timestamp,
+        },
       };
       
-      const TunnelMessage = root.tunnel.TunnelMessage;
+      const { TunnelMessage } = root.tunnel;
       const buffer = TunnelMessage.encode(tunnelMsg).finish();
       return buffer;
-    } else {
-      // JSON fallback
-      return {
-        type: 'ping',
-        messageId,
-        timestamp
-      };
-    }
+    } 
+    // JSON fallback
+    return {
+      type: 'ping',
+      messageId,
+      timestamp,
+    };
+    
   }
 
   /**
@@ -324,33 +323,33 @@ class ProtobufHandler {
    * @param {number} latency - Response latency in milliseconds
    * @returns {Buffer|Object} Serialized message
    */
-  createPongMessage(latency = 0) {
+  createPongMessage (latency = 0) {
     const messageId = this.generateMessageId();
     const timestamp = Date.now();
 
     if (this.useProtobuf) {
       const tunnelMsg = {
         type: root.tunnel.MessageType.PONG,
-        messageId: messageId,
-        timestamp: timestamp,
-        pong: {
-          timestamp: timestamp,
-          latency: latency
-        }
-      };
-      
-      const TunnelMessage = root.tunnel.TunnelMessage;
-      const buffer = TunnelMessage.encode(tunnelMsg).finish();
-      return buffer;
-    } else {
-      // JSON fallback
-      return {
-        type: 'pong',
         messageId,
         timestamp,
-        latency
+        pong: {
+          timestamp,
+          latency,
+        },
       };
-    }
+      
+      const { TunnelMessage } = root.tunnel;
+      const buffer = TunnelMessage.encode(tunnelMsg).finish();
+      return buffer;
+    } 
+    // JSON fallback
+    return {
+      type: 'pong',
+      messageId,
+      timestamp,
+      latency,
+    };
+    
   }
 
   /**
@@ -358,106 +357,106 @@ class ProtobufHandler {
    * @param {Buffer|string} data - Raw message data
    * @returns {Object} Parsed message object
    */
-  parseMessage(data) {
+  parseMessage (data) {
     try {
       if (this.useProtobuf) {
         // Handle binary protobuf data
-        const TunnelMessage = root.tunnel.TunnelMessage;
+        const { TunnelMessage } = root.tunnel;
         const tunnelMsg = TunnelMessage.decode(data);
-        const type = tunnelMsg.type;
-        const messageId = tunnelMsg.messageId;
-        const timestamp = tunnelMsg.timestamp;
+        const { type } = tunnelMsg;
+        const { messageId } = tunnelMsg;
+        const { timestamp } = tunnelMsg;
 
         switch (type) {
-          case root.tunnel.MessageType.REGISTER: {
-            const register = tunnelMsg.register;
-            return {
-              type: 'register',
-              messageId,
-              timestamp,
-              clientId: register.clientId,
-              version: register.version,
-              metadata: register.metadata || {}
-            };
-          }
+        case root.tunnel.MessageType.REGISTER: {
+          const { register } = tunnelMsg;
+          return {
+            type: 'register',
+            messageId,
+            timestamp,
+            clientId: register.clientId,
+            version: register.version,
+            metadata: register.metadata || {},
+          };
+        }
 
-          case root.tunnel.MessageType.REGISTERED: {
-            const registered = tunnelMsg.registered;
-            return {
-              type: 'registered',
-              messageId,
-              timestamp,
-              clientId: registered.clientId,
-              message: registered.message,
-              success: registered.success,
-              serverInfo: registered.serverInfo || {}
-            };
-          }
+        case root.tunnel.MessageType.REGISTERED: {
+          const { registered } = tunnelMsg;
+          return {
+            type: 'registered',
+            messageId,
+            timestamp,
+            clientId: registered.clientId,
+            message: registered.message,
+            success: registered.success,
+            serverInfo: registered.serverInfo || {},
+          };
+        }
 
-          case root.tunnel.MessageType.REQUEST: {
-            const request = tunnelMsg.request;
-            return {
-              type: 'request',
-              messageId,
-              timestamp,
-              reqId: request.reqId,
-              method: request.method,
-              path: request.path,
-              headers: this.headersFromProtobuf(request.headers || []),
-              body: request.body || Buffer.alloc(0),
-              bodyLength: request.bodyLength
-            };
-          }
+        case root.tunnel.MessageType.REQUEST: {
+          const { request } = tunnelMsg;
+          return {
+            type: 'request',
+            messageId,
+            timestamp,
+            reqId: request.reqId,
+            method: request.method,
+            path: request.path,
+            headers: this.headersFromProtobuf(request.headers || []),
+            body: request.body || Buffer.alloc(0),
+            bodyLength: request.bodyLength,
+          };
+        }
 
-          case root.tunnel.MessageType.RESPONSE: {
-            const response = tunnelMsg.response;
-            return {
-              type: 'response',
-              messageId,
-              timestamp,
-              reqId: response.reqId,
-              status: response.status,
-              headers: this.headersFromProtobuf(response.headers || []),
-              body: response.body || Buffer.alloc(0),
-              bodyLength: response.bodyLength
-            };
-          }
+        case root.tunnel.MessageType.RESPONSE: {
+          const { response } = tunnelMsg;
+          return {
+            type: 'response',
+            messageId,
+            timestamp,
+            reqId: response.reqId,
+            status: response.status,
+            headers: this.headersFromProtobuf(response.headers || []),
+            body: response.body || Buffer.alloc(0),
+            bodyLength: response.bodyLength,
+          };
+        }
 
-          case root.tunnel.MessageType.ERROR: {
-            const error = tunnelMsg.error;
-            return {
-              type: 'error',
-              messageId,
-              timestamp,
-              reqId: error.reqId,
-              errorCode: error.errorCode,
-              message: error.message
-            };
-          }
+        case root.tunnel.MessageType.ERROR: {
+          const { error } = tunnelMsg;
+          return {
+            type: 'error',
+            messageId,
+            timestamp,
+            reqId: error.reqId,
+            errorCode: error.errorCode,
+            message: error.message,
+          };
+        }
 
-          case root.tunnel.MessageType.PING: {
-            const ping = tunnelMsg.ping;
-            return {
-              type: 'ping',
-              messageId,
-              timestamp,
-              pingTimestamp: ping.timestamp
-            };
-          }
+        case root.tunnel.MessageType.PING: {
+          const { ping } = tunnelMsg;
+          return {
+            type: 'ping',
+            messageId,
+            timestamp,
+            pingTimestamp: ping.timestamp,
+          };
+        }
 
-          case root.tunnel.MessageType.PONG: {
-            const pong = tunnelMsg.pong;
-            return {
-              type: 'pong',
-              messageId,
-              timestamp,
-              pongTimestamp: pong.timestamp,
-              latency: pong.latency
-            };
-          }
+        case root.tunnel.MessageType.PONG: {
+          const { pong } = tunnelMsg;
+          return {
+            type: 'pong',
+            messageId,
+            timestamp,
+            pongTimestamp: pong.timestamp,
+            latency: pong.latency,
+          };
+        }
 
-          default:
-            throw new Error(`Unknown message type: ${type}`);
+        default:
+          throw new Error(`Unknown message type: ${type}`);
         }
       } else {
         // JSON fallback
@@ -475,7 +474,7 @@ class ProtobufHandler {
       logger.error('Failed to parse message', { 
         error: error.message, 
         dataLength: data ? data.length : 0,
-        useProtobuf: this.useProtobuf 
+        useProtobuf: this.useProtobuf, 
       });
       throw error;
     }
@@ -485,7 +484,7 @@ class ProtobufHandler {
    * Check if protobuf is available
    * @returns {boolean} True if protobuf is available
    */
-  isProtobufAvailable() {
+  isProtobufAvailable () {
     return this.useProtobuf;
   }
 
@@ -494,12 +493,12 @@ class ProtobufHandler {
    * @param {Buffer|Object} message - Message to measure
    * @returns {number} Message size in bytes
    */
-  getMessageSize(message) {
+  getMessageSize (message) {
     if (this.useProtobuf) {
       return message.length;
-    } else {
-      return Buffer.byteLength(JSON.stringify(message));
-    }
+    } 
+    return Buffer.byteLength(JSON.stringify(message));
+    
   }
 }
 

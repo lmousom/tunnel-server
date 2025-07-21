@@ -17,7 +17,7 @@ module.exports = {
     'quotes': ['error', 'single'],
     'semi': ['error', 'always'],
     'no-unused-vars': ['warn', { 'argsIgnorePattern': '^_' }],
-    'no-console': 'warn',
+    'no-console': 'off',
     'prefer-const': 'error',
     'no-var': 'error',
     'object-shorthand': 'error',
@@ -59,5 +59,8 @@ module.exports = {
     'logs/',
     '*.pem',
     '.env',
+    'proto/*.js',
+    'proto/*.d.ts',
+    'build/',
   ],
 }; 

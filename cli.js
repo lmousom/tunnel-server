@@ -21,8 +21,8 @@ const config = new Conf({
     localHost: 'localhost',
     clientId: 'default-client',
     reconnectInterval: 5000,
-    maxReconnectAttempts: 10
-  }
+    maxReconnectAttempts: 10,
+  },
 });
 
 // Check for updates
@@ -34,14 +34,14 @@ const program = new Command();
 const banner = figlet.textSync('TUNNEL', {
   font: 'Standard',
   horizontalLayout: 'default',
-  verticalLayout: 'default'
+  verticalLayout: 'default',
 });
 
 console.log(boxen(chalk.cyan(banner), {
   padding: 1,
   margin: 1,
   borderStyle: 'round',
-  borderColor: 'cyan'
+  borderColor: 'cyan',
 }));
 
 // Show author information
@@ -86,12 +86,18 @@ program
         localHost: options.host,
         clientId: options.clientId,
         reconnectInterval: parseInt(options.reconnectInterval),
-        maxReconnectAttempts: parseInt(options.maxReconnectAttempts)
+        maxReconnectAttempts: parseInt(options.maxReconnectAttempts),
       });
 
       // Set up event listeners for connection status
       let isConnected = false;
-      let connectionTimeout;
+      const connectionTimeout = setTimeout(() => {
+        if (!isConnected) {
+          spinner.fail(chalk.red('Connection timeout'));
+          console.error(chalk.red('Failed to connect within 30 seconds'));
+          process.exit(1);
+        }
+      }, 30000);
 
       // Handle successful connection
       client.on('connected', () => {
@@ -119,15 +125,6 @@ program
           console.log(chalk.yellow('\nDisconnected from tunnel server'));
         }
       });
-
-      // Set connection timeout
-      connectionTimeout = setTimeout(() => {
-        if (!isConnected) {
-          spinner.fail(chalk.red('Connection timeout'));
-          console.error(chalk.red('Failed to connect within 30 seconds'));
-          process.exit(1);
-        }
-      }, 30000);
 
       client.connect();
 
@@ -176,7 +173,7 @@ program
             return 'URL must start with ws:// or wss://';
           }
           return true;
-        }
+        },
       },
       {
         type: 'input',
@@ -189,7 +186,7 @@ program
             return 'Port must be a number between 1 and 65535';
           }
           return true;
-        }
+        },
       },
       {
         type: 'input',
@@ -199,7 +196,7 @@ program
         validate: (input) => {
           if (!input) return 'Host is required';
           return true;
-        }
+        },
       },
       {
         type: 'input',
@@ -212,14 +209,14 @@ program
             return 'Client ID can only contain letters, numbers, hyphens, and underscores';
           }
           return true;
-        }
+        },
       },
       {
         type: 'confirm',
         name: 'saveConfig',
         message: 'Save this configuration for future use?',
-        default: true
-      }
+        default: true,
+      },
     ];
 
     try {
@@ -245,8 +242,8 @@ program
           type: 'confirm',
           name: 'startNow',
           message: 'Start tunnel connection now?',
-          default: true
-        }
+          default: true,
+        },
       ]);
 
       if (startNow) {
@@ -256,7 +253,7 @@ program
           serverUrl: answers.serverUrl,
           localPort: parseInt(answers.localPort),
           localHost: answers.localHost,
-          clientId: answers.clientId
+          clientId: answers.clientId,
         });
 
         client.connect();
@@ -307,9 +304,9 @@ program
             { name: 'Local Host', value: 'localHost' },
             { name: 'Client ID', value: 'clientId' },
             { name: 'Reconnect Interval', value: 'reconnectInterval' },
-            { name: 'Max Reconnect Attempts', value: 'maxReconnectAttempts' }
-          ]
-        }
+            { name: 'Max Reconnect Attempts', value: 'maxReconnectAttempts' },
+          ],
+        },
       ];
 
       const { configKey } = await inquirer.prompt(questions);
@@ -320,8 +317,8 @@ program
           type: 'input',
           name: 'newValue',
           message: `Enter new value for ${configKey}:`,
-          default: currentValue.toString()
-        }
+          default: currentValue.toString(),
+        },
       ]);
 
       config.set(configKey, newValue);
@@ -369,7 +366,7 @@ program
         serverUrl: config.get('serverUrl'),
         localPort: parseInt(options.port),
         localHost: config.get('localHost'),
-        clientId: options.clientId
+        clientId: options.clientId,
       });
 
       client.connect();

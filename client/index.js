@@ -103,7 +103,7 @@ class TunnelClient extends EventEmitter {
       const message = this.protobufHandler.createRegisterMessage(this.clientId, {
         version: '1.0.0',
         platform: process.platform,
-        nodeVersion: process.version
+        nodeVersion: process.version,
       });
       
       // Send message (protobuf returns buffer, JSON returns object)
@@ -117,7 +117,7 @@ class TunnelClient extends EventEmitter {
       logger.debug('Registration message sent', { 
         clientId: this.clientId,
         useProtobuf: this.protobufHandler.isProtobufAvailable(),
-        messageSize: this.protobufHandler.getMessageSize(message)
+        messageSize: this.protobufHandler.getMessageSize(message),
       });
     }
   }
@@ -133,7 +133,7 @@ class TunnelClient extends EventEmitter {
           message: data.message,
           success: data.success,
           serverInfo: data.serverInfo,
-          useProtobuf: this.protobufHandler.isProtobufAvailable()
+          useProtobuf: this.protobufHandler.isProtobufAvailable(),
         });
       } else if (data.type === 'request') {
         this.handleRequest(data);
@@ -145,7 +145,7 @@ class TunnelClient extends EventEmitter {
         clientId: this.clientId,
         error: err.message,
         message: msg.toString(),
-        useProtobuf: this.protobufHandler.isProtobufAvailable()
+        useProtobuf: this.protobufHandler.isProtobufAvailable(),
       });
     }
   }
@@ -156,7 +156,7 @@ class TunnelClient extends EventEmitter {
    * @param {string} clientId - The client ID to strip
    * @returns {string} Local path for the target server
    */
-  extractLocalPath(tunnelPath, clientId) {
+  extractLocalPath (tunnelPath, clientId) {
     // Handle edge cases
     if (!tunnelPath || typeof tunnelPath !== 'string') {
       return '/';
@@ -182,7 +182,7 @@ class TunnelClient extends EventEmitter {
     }
     
     // Reconstruct the local path with leading slash
-    return '/' + localParts.join('/');
+    return `/${localParts.join('/')}`;
   }
 
   async handleRequest (data) {
@@ -225,7 +225,7 @@ class TunnelClient extends EventEmitter {
           reqId,
           res.statusCode,
           res.headers,
-          responseBody
+          responseBody,
         );
 
         this.sendResponse(response);
@@ -236,7 +236,7 @@ class TunnelClient extends EventEmitter {
           status: res.statusCode,
           responseSize: responseBody.length,
           useProtobuf: this.protobufHandler.isProtobufAvailable(),
-          messageSize: this.protobufHandler.getMessageSize(response)
+          messageSize: this.protobufHandler.getMessageSize(response),
         });
       });
     });
@@ -253,7 +253,7 @@ class TunnelClient extends EventEmitter {
         reqId,
         502,
         { 'content-type': 'text/plain' },
-        errorBody
+        errorBody,
       );
 
       this.sendResponse(errorResponse);
@@ -272,7 +272,7 @@ class TunnelClient extends EventEmitter {
         reqId,
         504,
         { 'content-type': 'text/plain' },
-        timeoutBody
+        timeoutBody,
       );
 
       this.sendResponse(timeoutResponse);
@@ -303,7 +303,7 @@ class TunnelClient extends EventEmitter {
           status: response.status,
           bodySize: response.bodyLength || 0,
           useProtobuf: this.protobufHandler.isProtobufAvailable(),
-          messageSize: this.protobufHandler.getMessageSize(response)
+          messageSize: this.protobufHandler.getMessageSize(response),
         });
       } catch (err) {
         logger.error('Failed to send response', {
