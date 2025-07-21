@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
 const { Command } = require('commander');
-const chalk = require('chalk').default;
-const inquirer = require('inquirer').default;
-const ora = require('ora').default;
-const Conf = require('conf').default;
-const updateNotifier = require('update-notifier').default;
+const chalk = require('chalk');
+const inquirer = require('inquirer');
+const ora = require('ora');
+const Conf = require('conf');
+const updateNotifier = require('update-notifier');
 const figlet = require('figlet');
-const boxen = require('boxen').default;
+const boxen = require('boxen');
 
 // Import the tunnel client
 const TunnelClient = require('./client/index.js');
